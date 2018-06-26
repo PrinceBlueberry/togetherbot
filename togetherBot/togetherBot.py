@@ -4,24 +4,28 @@ import time
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
+
 class Vector3:
     def __init__(self, data):
         self.data = data
-    def __sub__(self,value):
-        return Vector3([self.data[0]-value.data[0],self.data[1]-value.data[1],self.data[2]-value.data[2]])
-    def __mul__(self,value):
+
+    def __sub__(self, value):
+        return Vector3([self.data[0]-value.data[0], self.data[1]-value.data[1], self.data[2]-value.data[2]])
+
+    def __mul__(self, value):
         return (self.data[0]*value.data[0] + self.data[1]*value.data[1] + self.data[2]*value.data[2])
     
 
 class obj:
     def __init__(self):
-        self.location = Vector3([0,0,0])
-        self.velocity = Vector3([0,0,0])
-        self.rotation = Vector3([0,0,0])
-        self.rvelocity = Vector3([0,0,0])
+        self.location = Vector3([0, 0, 0])
+        self.velocity = Vector3([0, 0, 0])
+        self.rotation = Vector3([0, 0, 0])
+        self.rvelocity = Vector3([0, 0, 0])
 
-        self.local_location = Vector3([0,0,0])
+        self.local_location = Vector3([0, 0, 0])
         self.boost = 0
+
 
 class ATBA:
     def __init__(self):
@@ -29,24 +33,24 @@ class ATBA:
 
     def execute(self, agent):
         target_location = agent.ball
-        target_speed = velocity2D(agent.ball) + (distance2D(agent.ball,agent.me)/1.5)
+        target_speed = velocity2D(agent.ball) + (distance2D(agent.ball, agent.me)/1.5)
         
         return agent.ATBAController(target_location, target_speed)
+
 
 class GetBoost:
     def __init__(self):
         self.expired = False
 
-
     def execute(self, agent):
         #hard coded boost locations
         boost = []
-        boost.append(Vector3([3584,0,0]))
-        boost.append(Vector3([3072,4096,0]))
-        boost.append(Vector3([-3072,4096,0]))
-        boost.append(Vector3([-3584,0,0]))
-        boost.append(Vector3([-3072,-4096,0]))
-        boost.append(Vector3([3072,-4096,0]))
+        boost.append(Vector3([3584, 0, 0]))
+        boost.append(Vector3([3072, 4096, 0]))
+        boost.append(Vector3([-3072, 4096, 0]))
+        boost.append(Vector3([-3584, 0, 0]))
+        boost.append(Vector3([-3072, -4096, 0]))
+        boost.append(Vector3([3072, -4096, 0]))
 
         closest_boost = Vector3([9000, 90000, 0])
         for x in boost:
@@ -54,6 +58,7 @@ class GetBoost:
                 closest_boost = x
 
         return agent.simple_controller(closest_boost, 1400)
+
 
 class TogetherBot(BaseAgent):
     #boost_pads[] = get_field_info()
@@ -65,7 +70,6 @@ class TogetherBot(BaseAgent):
 
         self.state = ATBA()
         self.expired = True
-        
 
     def get_output(self, game: GameTickPacket) -> SimpleControllerState:
         controller_state = SimpleControllerState()
@@ -96,12 +100,13 @@ class TogetherBot(BaseAgent):
 
         return controller_state
 
-    def ATBAController(self,target_object,target_speed):
+    def ATBAController(self, target_object, target_speed):
         location = target_object.local_location
         controller_state = SimpleControllerState()
-        angle_to_ball = math.atan2(location.data[1],location.data[0])
+        angle_to_ball = math.atan2(location.data[1], location.data[0])
 
         current_speed = velocity2D(self.me)
+
         #steering
         if angle_to_ball > 0.1:
             controller_state.steer = controller_state.yaw = 1
@@ -125,48 +130,48 @@ class TogetherBot(BaseAgent):
         elif time_difference <= 0.1:
             controller_state.jump = True
             controller_state.pitch = -1
-        elif time_difference >= 0.1 and time_difference <= 0.15:
+        elif 0.1 <= time_difference <= 0.15:
             controller_state.jump = False
             controller_state.pitch = -1
-        elif time_difference > 0.15 and time_difference < 1:
+        elif 0.15 < time_difference < 1:
             controller_state.jump = True
             controller_state.yaw = controller_state.steer
             controller_state.pitch = -1
 
         return controller_state
 
-    def preprocess(self,game):
-        self.me.location.data = [game.game_cars[self.index].physics.location.x,game.game_cars[self.index].physics.location.y,game.game_cars[self.index].physics.location.z]
-        self.me.velocity.data = [game.game_cars[self.index].physics.velocity.x,game.game_cars[self.index].physics.velocity.y,game.game_cars[self.index].physics.velocity.z]
-        self.me.rotation.data = [game.game_cars[self.index].physics.rotation.pitch,game.game_cars[self.index].physics.rotation.yaw,game.game_cars[self.index].physics.rotation.roll]
-        self.me.rvelocity.data = [game.game_cars[self.index].physics.angular_velocity.x,game.game_cars[self.index].physics.angular_velocity.y,game.game_cars[self.index].physics.angular_velocity.z]
+    def preprocess(self, game):
+        self.me.location.data = [game.game_cars[self.index].physics.location.x, game.game_cars[self.index].physics.location.y, game.game_cars[self.index].physics.location.z]
+        self.me.velocity.data = [game.game_cars[self.index].physics.velocity.x, game.game_cars[self.index].physics.velocity.y, game.game_cars[self.index].physics.velocity.z]
+        self.me.rotation.data = [game.game_cars[self.index].physics.rotation.pitch, game.game_cars[self.index].physics.rotation.yaw, game.game_cars[self.index].physics.rotation.roll]
+        self.me.rvelocity.data = [game.game_cars[self.index].physics.angular_velocity.x, game.game_cars[self.index].physics.angular_velocity.y, game.game_cars[self.index].physics.angular_velocity.z]
         self.me.matrix = rotator_to_matrix(self.me)
         self.me.boost = game.game_cars[self.index].boost
         
-        self.ball.location.data = [game.game_ball.physics.location.x,game.game_ball.physics.location.y,game.game_ball.physics.location.z]
-        self.ball.velocity.data = [game.game_ball.physics.velocity.x,game.game_ball.physics.velocity.y,game.game_ball.physics.velocity.z]
-        self.ball.rotation.data = [game.game_ball.physics.rotation.pitch,game.game_ball.physics.rotation.yaw,game.game_ball.physics.rotation.roll]
-        self.ball.rvelocity.data = [game.game_ball.physics.angular_velocity.x,game.game_ball.physics.angular_velocity.y,game.game_ball.physics.angular_velocity.z]
+        self.ball.location.data = [game.game_ball.physics.location.x, game.game_ball.physics.location.y, game.game_ball.physics.location.z]
+        self.ball.velocity.data = [game.game_ball.physics.velocity.x, game.game_ball.physics.velocity.y, game.game_ball.physics.velocity.z]
+        self.ball.rotation.data = [game.game_ball.physics.rotation.pitch, game.game_ball.physics.rotation.yaw, game.game_ball.physics.rotation.roll]
+        self.ball.rvelocity.data = [game.game_ball.physics.angular_velocity.x, game.game_ball.physics.angular_velocity.y, game.game_ball.physics.angular_velocity.z]
 
-        self.ball.local_location.data = to_local(self.ball,self.me)
-
-
+        self.ball.local_location.data = to_local(self.ball, self.me)
 
     def get_state(self):
+        go_state = self.state
         if self.expired:
-            go_state = ATBA()
             if self.me.boost < 7:
                 go_state = GetBoost()
+            else:
+                go_state = ATBA()
 
         return go_state
 
 
-
-def to_local(target_object,our_object):
+def to_local(target_object, our_object):
     x = (target_object.location - our_object.location) * our_object.matrix[0]
     y = (target_object.location - our_object.location) * our_object.matrix[1]
     z = (target_object.location - our_object.location) * our_object.matrix[2]
-    return [x,y,z]
+    return [x, y, z]
+
 
 def rotator_to_matrix(our_object):
     r = our_object.rotation.data
@@ -183,11 +188,13 @@ def rotator_to_matrix(our_object):
     matrix.append(Vector3([-CR*CY*SP-SR*SY, -CR*SY*SP+SR*CY, CP*CR]))
     return matrix
 
+
 def velocity2D(target_object):
     return math.sqrt(target_object.velocity.data[0]**2 + target_object.velocity.data[1]**2)
 
+
 def distance2D(target_object, our_object):
-    if isinstance(target_object,Vector3):
+    if isinstance(target_object, Vector3):
         difference = target_object - our_object
     else:
         difference = target_object.location - our_object.location
